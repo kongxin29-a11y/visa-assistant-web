@@ -1066,6 +1066,7 @@ function badgeClass(badge) {
 function renderExplore() {
   const panel = document.getElementById("panel-explore");
   if (exploreState.countryCode) { renderCountryDetail(panel, exploreState.countryCode); return; }
+  disconnectLandmarkThumbObservers();
   const q = exploreState.q, region = exploreState.region, onlyFree = exploreState.onlyFree;
   const kw = q.trim().toLowerCase();
   const scoredList = [];
@@ -1114,7 +1115,7 @@ function renderExplore() {
         const g = guideFor(c.code);
         return '<button type="button" data-open="' + c.code + '" aria-label="查看' + esc(c.zh) + '签证信息" class="glass cv-card flex flex-col overflow-hidden text-left active:scale-[0.98]">' +
           '<span class="relative block">' +
-          (photoFor(c.code) ? '<img src="' + photoFor(c.code) + '" alt="' + esc(photoAltFor(c.code, c.zh)) + '" class="block h-24 w-full object-cover" loading="lazy" decoding="async" data-code="' + c.code + '" data-name="' + esc(c.zh) + '" onerror="imgFallback(this)" />' : '<span class="flex h-24 w-full items-center justify-center bg-white/10">' + flagHTML(c.code, c.zh, "w-16") + "</span>") +
+          (photoFor(c.code) ? '<img src="' + photoThumbFor(c.code) + '" alt="' + esc(photoAltFor(c.code, c.zh)) + '" class="block h-24 w-full object-cover" loading="lazy" decoding="async" fetchpriority="low" data-landmark-thumb="1" data-code="' + c.code + '" data-name="' + esc(c.zh) + '" onerror="imgFallback(this)" />' : '<span class="flex h-24 w-full items-center justify-center bg-white/10">' + flagHTML(c.code, c.zh, "w-16") + "</span>") +
           "</span>" +
           '<span class="block w-full p-3"><span class="flex items-start gap-1.5">' + (photoFor(c.code) ? '<span class="shrink-0" style="margin-top:1px">' + flagHTML(c.code, c.zh, "w-6") + "</span>" : "") + '<span class="block text-sm font-semibold leading-snug">' + esc(c.zh) + '</span></span>' +
           '<span class="block text-[11px] leading-snug text-[var(--dim)]">' + esc(c.en) + "</span>" +
@@ -1142,6 +1143,7 @@ function renderExplore() {
   /* 渲染后立刻按当前筛选状态就地应用一次（隐藏不匹配卡、按打分重排、回写计数与板块显隐）：
      网格已恒含全部卡，这一步只切显隐，不重建 DOM */
   applyExploreFilter();
+  primeLandmarkThumbs(panel);
 }
 
 /* 就地筛选：网格恒含全部 306 国卡片；搜索/大洲/只看免签变化时只切换卡片显隐、
@@ -1201,6 +1203,7 @@ function openCountry(code) {
 }
 
 function renderCountryDetail(panel, code) {
+  disconnectLandmarkThumbObservers();
   const country = COUNTRIES.find((c) => c.code === code);
   if (!country) { exploreState.countryCode = null; renderExplore(); return; }
   const guide = guideFor(code);
@@ -3069,7 +3072,38 @@ const PHOTO_BY_CODE = { us: "assets/photos/us.webp", jp: "assets/photos/jp.webp"
 const PHOTO_ALT = { us: "美国纽约自由女神像", jp: "日本富士山与河口湖", fr: "法国巴黎埃菲尔铁塔", au: "澳大利亚悉尼歌剧院与海港" };
 const LANDMARK_ZH = {"ad": "安道尔城 Casa de la Vall 议会大厦", "ae": "迪拜哈利法塔", "af": "马扎里沙里夫蓝色清真寺", "ag": "安提瓜纳尔逊船坞", "ai": "安圭拉沃尔布莱克大宅", "al": "地拉那斯坎德培广场", "am": "加尼神庙", "ao": "罗安达圣米格尔城堡", "aq": "南极科考站", "ar": "布宜诺斯艾利斯方尖碑", "as": "帕果帕果港", "at": "维也纳美泉宫", "au": "悉尼歌剧院与海港", "aw": "阿鲁巴加利福尼亚灯塔", "ax": "奥兰卡斯特霍尔姆城堡", "az": "巴库火焰塔", "ba": "莫斯塔尔老桥", "bb": "布里奇敦议会大厦", "bd": "达卡阿赫桑宫", "be": "布鲁塞尔原子塔", "bf": "博博迪乌拉索大清真寺", "bg": "索非亚亚历山大·涅夫斯基大教堂", "bh": "巴林世贸中心", "bi": "布琼布拉圣母主教座堂", "bj": "维达大教堂", "bl": "古斯塔维亚灯塔", "bm": "汉密尔顿圣三一大教堂", "bn": "奥马尔·阿里·赛义夫丁清真寺", "bo": "拉巴斯大教堂", "bq": "博内尔盐丘", "br": "里约热内卢救世基督像", "bs": "巴哈马天堂岛亚特兰蒂斯", "bt": "不丹虎穴寺", "bv": "布韦岛（无人岛，挪威属地）", "bw": "哈博罗内三酋长纪念碑", "by": "米尔城堡", "bz": "苏南图尼奇玛雅遗址", "ca": "渥太华国会山", "cc": "科科斯（基林）群岛", "cd": "金沙萨国家宫", "cf": "班吉圣母大教堂", "cg": "布拉柴维尔圣安妮大教堂", "ch": "卢塞恩卡佩尔桥", "ci": "亚穆苏克罗和平圣母大教堂", "ck": "拉罗汤加阿瓦鲁阿教堂", "cl": "复活节岛摩艾石像", "cm": "杜阿拉圣彼得与圣保罗大教堂", "cn": "北京故宫", "co": "卡塔赫纳老城", "cr": "圣何塞国家剧院", "cu": "哈瓦那国会大厦", "cv": "明德卢人民宫", "cw": "威廉斯塔德汉德尔斯卡德彩楼", "cx": "圣诞岛大京屋", "cy": "凯里尼亚城堡", "cz": "布拉格查理大桥", "de": "柏林勃兰登堡门", "dj": "吉布提市哈穆迪清真寺", "dk": "哥本哈根新港", "dm": "罗索主教座堂", "do": "圣多明哥哥伦布城堡", "dz": "阿尔及尔烈士纪念碑", "ec": "基多赤道纪念碑", "ee": "塔林亚历山大·涅夫斯基大教堂", "eg": "吉萨金字塔", "eh": "阿尤恩", "er": "阿斯马拉菲亚特塔列罗大厦", "es": "巴塞罗那圣家堂", "et": "拉利贝拉岩石教堂", "eu": "布鲁塞尔欧洲议会大厦", "fi": "赫尔辛基大教堂", "fj": "苏瓦太平洋大酒店", "fk": "斯坦利基督教堂座堂", "fm": "南马都尔遗址", "fo": "法罗基尔丘伯遗址", "fr": "巴黎埃菲尔铁塔", "ga": "利伯维尔", "gb": "伦敦大本钟与议会大厦", "gb-eng": "伦敦塔桥", "gb-nir": "贝尔法斯特泰坦尼克博物馆", "gb-sct": "爱丁堡城堡", "gb-wls": "卡迪夫城堡", "gd": "圣乔治乔治堡", "ge": "第比利斯纳里卡拉城堡", "gf": "库鲁圭亚那航天中心", "gg": "圣彼得港", "gh": "海岸角城堡", "gi": "直布罗陀岩山", "gl": "努克彩色小屋", "gm": "班珠尔22号拱门", "gn": "科纳克里大清真寺", "gp": "瓜德罗普ACTe纪念馆", "gq": "马拉博大教堂", "gr": "雅典卫城帕特农神庙", "gs": "格里特维肯教堂", "gt": "安提瓜圣卡塔利娜拱门", "gu": "关岛圣母圣名主教座堂", "gw": "比绍大教堂", "gy": "乔治敦圣乔治大教堂", "hk": "香港维多利亚港天际线", "hm": "赫德岛（无人岛火山岛）", "hn": "科潘玛雅遗址", "hr": "杜布罗夫尼克老城", "ht": "海地拉费里埃城堡", "hu": "布达佩斯国会大厦", "id": "婆罗浮屠", "ie": "都柏林圣三一学院", "il": "耶路撒冷圆顶清真寺", "im": "拉克西大水车", "in": "泰姬陵", "io": "迪戈加西亚岛", "iq": "巴格达烈士纪念碑", "ir": "德黑兰自由塔", "is": "雷克雅未克哈尔格林姆斯大教堂", "it": "罗马斗兽场", "je": "蒙奥格伊城堡", "jm": "牙买加玫瑰庄园", "jo": "佩特拉卡兹尼神殿", "jp": "富士山与河口湖", "ke": "内罗毕肯雅塔国际会议中心", "kg": "布拉纳塔", "kh": "吴哥窟", "ki": "基里巴斯议会大厦", "km": "莫罗尼老城清真寺", "kn": "硫磺山要塞", "kp": "平壤凯旋门", "kr": "首尔景福宫", "kw": "科威特塔", "ky": "佩德罗圣詹姆斯城堡", "kz": "阿斯塔纳巴伊杰列克塔", "la": "万象塔銮", "lb": "贝鲁特穆罕默德·阿明清真寺", "lc": "卡斯特里大教堂", "li": "瓦杜兹城堡", "lk": "狮子岩", "lr": "蒙罗维亚", "ls": "马塞卢", "lt": "维尔纽斯格迪米纳斯塔", "lu": "卢森堡阿道夫桥", "lv": "里加黑头宫", "ly": "大莱普提斯遗址", "ma": "卡萨布兰卡哈桑二世清真寺", "mc": "蒙特卡洛赌场", "md": "基希讷乌凯旋门与主诞大教堂", "me": "奥斯特罗格修道院", "mf": "马里戈路易堡", "mg": "安塔那那利佛女王宫", "mh": "马朱罗环礁", "mk": "斯科普里石桥", "ml": "杰内大清真寺", "mm": "仰光大金塔", "mn": "成吉思汗巨型雕像", "mo": "澳门大三巴牌坊", "mp": "塞班加拉班灯塔", "mq": "法兰西堡舍尔歇图书馆", "mr": "欣盖提清真寺", "ms": "蒙特塞拉特普利茅斯", "mt": "瓦莱塔圣约翰联合大教堂", "mu": "路易港蔻丹海滨", "mv": "马累伊斯兰中心", "mw": "利隆圭议会大厦", "mx": "奇琴伊察金字塔", "my": "吉隆坡双子塔", "mz": "马普托中央火车站", "na": "温得和克基督教堂", "nc": "努美阿芝巴欧文化中心", "ne": "尼亚美大清真寺", "nf": "诺福克岛金斯顿囚犯定居点遗址", "ng": "阿布贾国家清真寺", "ni": "莱昂大教堂", "nl": "阿姆斯特丹运河带", "no": "卑尔根布吕根码头", "np": "加德满都博达哈大佛塔", "nr": "瑙鲁议会大厦", "nu": "阿洛菲", "nz": "奥克兰天空塔", "om": "马斯喀特苏丹卡布斯大清真寺", "pa": "巴拿马运河米拉弗洛雷斯船闸", "pe": "马丘比丘", "pf": "帕皮提圣母大教堂", "pg": "莫尔兹比港议会大厦", "ph": "马尼拉王城区圣地亚哥堡", "pk": "拉合尔巴德沙希清真寺", "pl": "克拉科夫瓦维尔城堡", "pm": "圣皮埃尔大教堂", "pn": "皮特凯恩岛亚当斯敦", "pr": "圣胡安莫罗城堡", "ps": "伯利恒圣诞教堂", "pt": "里斯本贝伦塔", "pw": "帕劳国家国会大厦", "py": "亚松森洛佩斯宫", "qa": "多哈伊斯兰艺术博物馆", "re": "留尼汪圣但尼大教堂", "ro": "布加勒斯特议会宫", "rs": "贝尔格莱德圣萨瓦教堂", "ru": "莫斯科圣瓦西里大教堂", "rw": "基加利会议中心", "sa": "利雅得王国中心", "sb": "霍尼亚拉国家议会大厦", "sc": "塞舌尔维多利亚钟塔", "sd": "麦罗埃金字塔", "se": "斯德哥尔摩市政厅", "sg": "新加坡滨海湾金沙", "sh": "詹姆斯敦与雅各布阶梯", "si": "布莱德湖岛教堂", "sj": "朗伊尔城", "sk": "布拉迪斯拉发城堡", "sl": "弗里敦圣乔治大教堂", "sm": "圣马力诺瓜伊塔塔", "sn": "达喀尔非洲复兴纪念碑", "so": "摩加迪沙", "sr": "帕拉马里博圣彼得与圣保罗大教堂", "ss": "朱巴主教座堂", "st": "圣多美主教座堂", "sv": "圣萨尔瓦多大教堂", "sx": "菲利普斯堡法院", "sy": "大马士革伍麦叶清真寺", "sz": "洛班巴议会大厦", "tc": "大特克灯塔", "td": "恩贾梅纳大清真寺", "tf": "凯尔盖朗科考站", "tg": "洛美大教堂", "th": "曼谷大皇宫与玉佛寺", "tj": "杜尚别索莫尼纪念碑", "tk": "托克劳环礁村落", "tl": "帝力基督君王像", "tm": "阿什哈巴德婚礼宫", "tn": "突尼斯齐图纳清真寺", "to": "努库阿洛法王宫", "tr": "伊斯坦布尔圣索菲亚大教堂", "tt": "西班牙港国家表演艺术学院", "tv": "富纳富提政府大楼", "tw": "台北101", "tz": "桑给巴尔奇迹宫", "ua": "基辅圣索菲亚大教堂", "ug": "坎帕拉卡扎菲国家清真寺", "um": "威克岛（美国本土外小岛屿）", "un": "纽约联合国总部大楼", "us": "纽约自由女神像", "us-ak": "阿拉斯加州议会大厦（朱诺）", "us-al": "阿拉巴马州伯明翰火神像", "us-ar": "阿肯色州议会大厦（小石城）", "us-az": "胡佛水坝", "us-ca": "旧金山金门大桥", "us-co": "科罗拉多州梅萨维德崖居", "us-ct": "康涅狄格州马克·吐温故居", "us-de": "特拉华州尼穆尔庄园", "us-fl": "佛罗里达州迈阿密比斯卡亚博物馆", "us-ga": "佐治亚州萨凡纳福赛斯公园喷泉", "us-hi": "夏威夷伊奥拉尼宫", "us-ia": "艾奥瓦州议会大厦（得梅因）", "us-id": "爱达荷州议会大厦（博伊西）", "us-il": "芝加哥云门", "us-in": "印第安纳州士兵水手纪念碑", "us-ks": "堪萨斯州平原守护者雕像", "us-ky": "肯塔基州丘吉尔园马场", "us-la": "新奥尔良圣路易斯大教堂", "us-ma": "马萨诸塞州议会大厦（波士顿）", "us-md": "马里兰州议会大厦（安纳波利斯）", "us-me": "缅因州波特兰灯塔", "us-mi": "密歇根州麦基诺大桥", "us-mn": "明尼苏达州分石灯塔", "us-mo": "圣路易斯大拱门", "us-ms": "密西西比州比洛克西灯塔", "us-mt": "蒙大拿州议会大厦（海伦娜）", "us-nc": "北卡罗来纳州比尔特摩庄园", "us-nd": "北达科他州议会大厦（俾斯麦）", "us-ne": "内布拉斯加州议会大厦（林肯）", "us-nh": "新罕布什尔州议会大厦（康科德）", "us-nj": "新泽西州普林斯顿大学拿骚楼", "us-nm": "新墨西哥州陶斯普韦布洛", "us-nv": "拉斯维加斯大道", "us-ny": "尼亚加拉瀑布", "us-oh": "俄亥俄州克利夫兰摇滚名人堂", "us-ok": "俄克拉荷马州议会大厦", "us-or": "俄勒冈州波特兰皮托克大厦", "us-pa": "费城独立厅", "us-ri": "罗德岛州纽波特听涛山庄", "us-sc": "南卡罗来纳州查尔斯顿彩虹排屋", "us-sd": "南达科他州拉什莫尔山", "us-tn": "田纳西州纳什维尔帕特农神庙", "us-tx": "得克萨斯州阿拉莫教堂", "us-ut": "犹他州议会大厦（盐湖城）", "us-va": "弗吉尼亚州蒙蒂塞洛庄园", "us-vt": "佛蒙特州议会大厦（蒙彼利埃）", "us-wa": "西雅图太空针塔", "us-wi": "威斯康星州议会大厦（麦迪逊）", "us-wv": "西弗吉尼亚州新河峡大桥", "us-wy": "怀俄明州黄石老忠实旅馆", "uy": "蒙得维的亚萨尔沃宫", "uz": "撒马尔罕雷吉斯坦", "va": "圣彼得大教堂", "vc": "金斯敦圣乔治大教堂", "ve": "加拉加斯洪堡酒店", "vg": "托尔托拉岛罗德镇", "vi": "夏洛特阿马利亚克里斯蒂安堡", "vn": "河内胡志明纪念堂", "vu": "维拉港议会大厦", "wf": "马塔乌图大教堂", "ws": "阿皮亚圣母无原罪大教堂", "xk": "普里什蒂纳科索沃国家图书馆", "ye": "萨那老城塔楼", "yt": "马穆楚", "za": "比勒陀利亚联合大厦", "zm": "维多利亚瀑布大桥", "zw": "大津巴布韦遗址"};
 function photoFor(code) { return PHOTO_BY_CODE[code] || (LANDMARK_ZH[code] ? "assets/landmarks/" + code + ".webp" : null); }
+function photoThumbFor(code) { return LANDMARK_ZH[code] ? "assets/landmarks/thumbs/" + code + ".webp" : photoFor(code); }
 function photoAltFor(code, zhName) { return PHOTO_ALT[code] || (LANDMARK_ZH[code] ? zhName + "地标建筑：" + LANDMARK_ZH[code] : zhName); }
+
+let landmarkWarmObserver = null;
+let landmarkVisibleObserver = null;
+function disconnectLandmarkThumbObservers() {
+  if (landmarkWarmObserver) landmarkWarmObserver.disconnect();
+  if (landmarkVisibleObserver) landmarkVisibleObserver.disconnect();
+  landmarkWarmObserver = null;
+  landmarkVisibleObserver = null;
+}
+function primeLandmarkThumbs(root) {
+  if (!("IntersectionObserver" in window)) return;
+  landmarkVisibleObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.setAttribute("fetchpriority", "high");
+      observer.unobserve(entry.target);
+    });
+  }, { rootMargin: "180px 0px" });
+  landmarkWarmObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      const img = entry.target;
+      observer.unobserve(img);
+      img.loading = "eager";
+      img.setAttribute("fetchpriority", "low");
+      landmarkVisibleObserver.observe(img);
+    });
+  }, { rootMargin: "1200px 0px" });
+  root.querySelectorAll("img[data-landmark-thumb]").forEach((img) => landmarkWarmObserver.observe(img));
+}
 function scrollToId(id) { const n = document.getElementById(id); if (n) n.scrollIntoView({ behavior: "smooth", block: "start" }); }
 function downloadTextFile(name, text) {
   try {
@@ -3361,7 +3395,7 @@ function goalMainHTML(code, country, guide, st) {
     const all = s.tasks.length > 0 && s.tasks.every((t) => taskDone(st, t));
     return all ? "已完成" : "";
   };
-  let h = '<div class="flex items-center gap-3">' + (photoFor(code) ? '<span class="relative shrink-0"><img src="' + photoFor(code) + '" alt="' + esc(photoAltFor(code, country.zh)) + '" class="block h-14 w-20 rounded-xl object-cover shadow" loading="lazy" decoding="async" data-code="' + code + '" data-name="' + esc(country.zh) + '" onerror="imgFallback(this)" /><span class="absolute -bottom-1.5 -right-1.5 flex rounded bg-black/40 p-0.5 backdrop-blur-sm">' + flagHTML(code, country.zh, "w-5") + "</span></span>" : flagHTML(code, country.zh, "w-16")) +
+  let h = '<div class="flex items-center gap-3">' + (photoFor(code) ? '<span class="relative shrink-0"><img src="' + photoThumbFor(code) + '" alt="' + esc(photoAltFor(code, country.zh)) + '" class="block h-14 w-20 rounded-xl object-cover shadow" loading="lazy" decoding="async" data-code="' + code + '" data-name="' + esc(country.zh) + '" onerror="imgFallback(this)" /><span class="absolute -bottom-1.5 -right-1.5 flex rounded bg-black/40 p-0.5 backdrop-blur-sm">' + flagHTML(code, country.zh, "w-5") + "</span></span>" : flagHTML(code, country.zh, "w-16")) +
     '<div class="min-w-0 flex-1"><div class="flex items-center gap-2"><span class="font-bold">' + esc(country.zh) + '</span><span class="text-xs text-[var(--dim)]">计划编号 ' + goalNo(code) + '</span></div>' +
     '<div class="text-xs leading-relaxed text-[var(--dim)]">' + esc(guide ? guide.visaType : "") + '</div>' +
     '<div class="mt-0.5 text-xs text-[var(--dim)]">阶段任务完成度（勾选后点下方「保存进度」生效）</div></div>' +
@@ -3391,7 +3425,7 @@ function goalsSectionHTML(apps) {
       const g = guideFor(a.countryCode);
       const pct = goalPctFor(a.countryCode, a.checkedMaterials, a.tasks);
       return '<button type="button" data-open="' + c.code + '" aria-label="查看' + esc(c.zh) + '目标进度" class="glass flex w-full items-center gap-3 p-3 text-left active:scale-[0.99]">' +
-        (photoFor(c.code) ? '<span class="relative shrink-0"><img src="' + photoFor(c.code) + '" alt="' + esc(photoAltFor(c.code, c.zh)) + '" class="block h-14 w-20 rounded-lg object-cover shadow" loading="lazy" decoding="async" data-code="' + c.code + '" data-name="' + esc(c.zh) + '" onerror="imgFallback(this)" /><span class="absolute -bottom-1.5 -right-1.5 flex rounded bg-black/40 p-0.5 backdrop-blur-sm">' + flagHTML(c.code, c.zh, "w-5") + "</span></span>" : flagHTML(c.code, c.zh, "w-12")) +
+        (photoFor(c.code) ? '<span class="relative shrink-0"><img src="' + photoThumbFor(c.code) + '" alt="' + esc(photoAltFor(c.code, c.zh)) + '" class="block h-14 w-20 rounded-lg object-cover shadow" loading="lazy" decoding="async" data-code="' + c.code + '" data-name="' + esc(c.zh) + '" onerror="imgFallback(this)" /><span class="absolute -bottom-1.5 -right-1.5 flex rounded bg-black/40 p-0.5 backdrop-blur-sm">' + flagHTML(c.code, c.zh, "w-5") + "</span></span>" : flagHTML(c.code, c.zh, "w-12")) +
         '<span class="min-w-0 flex-1"><span class="block text-[15px] font-semibold leading-snug">' + esc(c.zh) + '</span>' +
         '<span class="block truncate text-xs text-[var(--dim)]">计划编号 ' + goalNo(c.code) + " · " + esc(g ? g.visaType : "") + " · " + esc(STATUS_LABEL[a.status] || a.status) + (a.travelDate ? " · 出行 " + esc(a.travelDate) : "") + "</span></span>" +
         ringHTML(pct, 52) + "</button>";

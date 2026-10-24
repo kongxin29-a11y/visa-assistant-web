@@ -14,7 +14,7 @@ visa-assistant-web/
 └── assets/
     ├── countries.json    306 个国家/地区政策数据
     ├── flags-atlas.webp  国旗图集
-    ├── landmarks/        地标照片 306 张（每个国家/地区一张，*.webp）
+    ├── landmarks/        地标原图 306 张；thumbs/ 中为列表快速加载用缩略图
     ├── photos/           热门目的地照片 4 张（美国/日本/法国/澳大利亚）
     └── audio/            模拟面签提问录音 114 段（57 英文 + 57 中文，*.mp3）
 ```
