@@ -9,7 +9,7 @@
 ```
 visa-assistant-web/
 ├── index.html            全部页面代码（HTML + CSS + JS 单文件）
-├── icon.webp             应用图标
+├── icon.svg              应用图标 / 浏览器标签页图标
 ├── README.md             本文件
 └── assets/
     ├── countries.json    306 个国家/地区政策数据
